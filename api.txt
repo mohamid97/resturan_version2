@@ -1,0 +1,23 @@
+api 
+1- coupon details check in start and end date
+
+2- create order 
+  - nullable => gov_id , city_id , address , coupon_code
+
+3- fees 
+ -- city_id and return price shipment
+
+4- payment_method => cahse on delvery 
+
+5- point sysment api send token 
+
+  - return points and pounds
+
+
+
+DB_CONNECTION=mysql
+DB_HOS=
+DB_PORT=3306
+DB_DATABASE=cangrowonline_resturant
+DB_USERNAME=cangrowonline_cangrowonline
+DB_PASSWORD=Cz9}6u*qi2^f
