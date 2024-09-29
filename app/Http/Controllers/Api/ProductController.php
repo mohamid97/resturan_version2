@@ -23,21 +23,33 @@ class ProductController extends Controller
         $products = Product::with(['category' , 'gallery'])->get();
         return  $this->res(true ,'All Products' , 200 ,ProductResource::collection($products));
     }
+
+
+
+
     public function get_product_details(Request $request) {
 
         $request->validate([
             'slug'=>'required|string'
         ]);
-        $productdetails = Product::with(['category' , 'gallery' , '' , '' ])->whereHas('translations', function ($query) use($request) {
+        $productdetails = Product::with(['category' , 'gallery' , 'types.options' , 'extras' , 'combos'])->whereHas('translations', function ($query) use($request) {
             $query->where('locale', '=', app()->getLocale())->where('slug' , $request->slug);
         })->first();
 
+
+        
         if(optional($productdetails)->exists()){
             return  $this->res(true ,'product Details' , 200 , new ProductDetailsResource($productdetails));
         }
 
         return  $this->res(false ,'product details not found. Maybe there is no data with this slug or no data in this language.' , 404);
     }
+
+
+
+
+
+
 
     public function get_product_category(Request $request){
         $request->validate([
@@ -57,11 +69,15 @@ class ProductController extends Controller
                 'category_slug'=>'required|string'
             ]);
 
-            $category_details = Category::with(['products.gallery' , 'translations'])->whereHas('translations', function ($query) use ($request) {
+            
+
+            $category_details = Category::with(['products.gallery' , 'translations' , 'products.types.options' , 'products.extras' , 'products.combos'])->whereHas('translations', function ($query) use ($request) {
                 $query->where('slug', $request->category_slug);
             })->first();
             if(isset($category_details)){
-    
+               if($category_details->has_options == '0'){
+                 return  $this->res(true ,'No Option For This Product ' , 404);
+               }
                 // Find the translation that matches the provided slug
                 $translation = $category_details->translations->firstWhere('slug', $request->category_slug);
     
@@ -69,7 +85,7 @@ class ProductController extends Controller
                 $slug = $translation->slug;
                 $locale = $translation->locale;  // 'ar' or 'en', depending on the slug
                 if($locale != app()->getLocale() ){
-                    $category_details = Category::with('products.gallery')->where('id' , $category_details->id)->whereHas('translations', function ($query) {
+                    $category_details = Category::with(['products.gallery'  , 'products.types.options' , 'products.extras' , 'products.combos'])->where('id' , $category_details->id)->whereHas('translations', function ($query) {
                         $query->where('locale', '=', app()->getLocale());
                     })->first();
                 }

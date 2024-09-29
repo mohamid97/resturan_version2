@@ -43,6 +43,24 @@ use Illuminate\Support\Facades\Route;
 // start prefix version 2
 
  Route::prefix('V2')->group(function(){
+
+
+    // start coupons
+    Route::prefix('coupons')->group(function(){
+        Route::get('/get' , [CouponsController::class , 'get']);
+        
+    });
+
+
+    //offers 
+    Route::prefix('offers')->group(function(){
+        Route::get('/get' , [OffersController::class , 'get']);
+        Route::post('/offer_details' , [OffersController::class , 'order_details']);
+
+    });
+
+       
+
     Route::prefix('sliders')->group(function (){
         Route::get('/get' , [\App\Http\Controllers\Api\SliderController::class , 'get']);
     });
@@ -53,8 +71,8 @@ use Illuminate\Support\Facades\Route;
     
     Route::prefix('category')->group(function (){
         Route::get('/get' , [\App\Http\Controllers\Api\CategoryController::class , 'get']);
-        Route::post('/details' , [\App\Http\Controllers\Api\CategoryController::class , 'get_details']);
-        Route::get('/subcategory/get' , [\App\Http\Controllers\Api\CategoryController::class , 'get_category_with_sub']);
+        // Route::post('/details' , [\App\Http\Controllers\Api\CategoryController::class , 'get_details']);
+        // Route::get('/subcategory/get' , [\App\Http\Controllers\Api\CategoryController::class , 'get_category_with_sub']);
          
     });
     
@@ -104,39 +122,36 @@ use Illuminate\Support\Facades\Route;
     
     
     
-    // Route::prefix('products')->group(function (){
-    //     Route::get('get' , [\App\Http\Controllers\Api\ProductController::class , 'get']);
-    //     Route::post('/product_details/get' , [\App\Http\Controllers\Api\ProductController::class , 'get_product_details']);
-    //     Route::post('category/get' , [\App\Http\Controllers\Api\ProductController::class , 'get_product_category']);
-    //     Route::post('category/slug' , [\App\Http\Controllers\Api\ProductController::class , 'get_product_slug']);
+    Route::prefix('products')->group(function (){
+       // Route::get('get' , [\App\Http\Controllers\Api\ProductController::class , 'get']);
+        Route::post('/product_details/get' , [\App\Http\Controllers\Api\ProductController::class , 'get_product_details']);
+       // Route::post('category/get' , [\App\Http\Controllers\Api\ProductController::class , 'get_product_category']);
+       Route::post('category/slug' , [\App\Http\Controllers\Api\ProductController::class , 'get_product_slug']);
+       Route::post('/featured' , [FeaturedApiController::class , 'get']);
     
-    // });
-    
-    
-
- });
-
-
-
-
-
- Route::prefix('mission_vission')->group(function(){ 
-     Route::get('/get' , [MissionVisionController::class , 'get']);
- });
-
-
-    // start coupons
-    Route::prefix('coupons')->group(function(){
-        Route::get('/get' , [CouponsController::class , 'get']);
-       
     });
 
-    //offers 
-    Route::prefix('offers')->group(function(){
-        Route::get('/get' , [OffersController::class , 'get']);
-        Route::post('/offer_details' , [OffersController::class , 'order_details']);
 
-   });
+
+
+
+
+    
+    
+
+ }); // end version 2 from resturant project 
+
+
+
+
+
+//  Route::prefix('mission_vission')->group(function(){ 
+//      Route::get('/get' , [MissionVisionController::class , 'get']);
+//  });
+
+
+
+
 
     // middleware with lang
 
@@ -145,17 +160,12 @@ use Illuminate\Support\Facades\Route;
         Route::post('store' , [\App\Http\Controllers\Api\UsersController::class, 'store']);
         Route::prefix('delivery')->group(function(){
             // login 
-            Route::post('login' , [DeliveryController::class, 'login']);
-            
+            Route::post('login' , [DeliveryController::class, 'login']); 
         });
-
         // start rest password
         Route::post('rest_password' , [\App\Http\Controllers\Api\UsersController::class, 'rest_password']);
         Route::post('check/rest_code' , [\App\Http\Controllers\Api\UsersController::class, 'check_rest_code']);
-
     });
-
-
 
     // api for govs and cities
     Route::prefix('govs')->group(function(){
@@ -181,9 +191,6 @@ use Illuminate\Support\Facades\Route;
 
 
 
-   Route::prefix('featured')->group(function(){
-     Route::get('/products' , [FeaturedApiController::class , 'get']);
-   });
 
 
 
@@ -195,9 +202,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth:sanctum' , 'checkLang'])->group(function (){
 
 
-
-    // start address of user
-     
+    // start address of user 
     Route::prefix('user_addresses')->group(function(){
         Route::post('/all' , [UsersController::class , 'all_address']);
         Route::post('/edit' , [UsersController::class , 'edit_address']);

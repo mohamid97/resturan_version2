@@ -14,10 +14,12 @@ class CategoryResource extends JsonResource
      */
     public function toArray($request)
     {
+       
         return [
             'name'=>$this->name,
             'des'=>$this->des,
             'type'=>($this->type != 0) ? 'Child' :'Parent',
+            'type'=>($this->has_options == '0') ? 'No' :'Yes',
             'image_name'=> $this->photo,
             'image_path'=> asset('/uploads/images/category/'),
             'alt_image' => $this->alt_image,

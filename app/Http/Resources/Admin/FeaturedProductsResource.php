@@ -26,6 +26,9 @@ class FeaturedProductsResource extends JsonResource
             'des'         =>$this->product->des,
             'slug'        =>$this->product->slug,
             'gallery'     =>$this->product->gallery,
+            'types'       =>TypesResource::collection($this->product->types),
+            'extras'      =>ExtrasResource::collection($this->product->extras),
+            'combos'      =>CombosResource::collection($this->product->combos),
         ];
     }
 }
