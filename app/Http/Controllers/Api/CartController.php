@@ -6,13 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreCartRequest;
 use App\Http\Requests\Api\StoreOfferCardRequets;
 use App\Http\Requests\Api\UpdateCartRequest;
+use App\Http\Resources\Admin\CartWithOptionResource;
 use App\Http\Resources\Admin\OfferCardResource;
 use App\Http\Resources\Admin\OffersCardResource;
 use App\Http\Resources\Admin\UsersResource;
 use App\Http\Resources\Front\CartResource;
+use App\Models\Admin\CartItemsExtras;
+use App\Models\Admin\CartItemsTypes;
 use App\Models\Admin\OfferCard;
 use App\Models\Admin\Offers;
 use App\Models\Admin\Product;
+use App\Models\Admin\Typeoption;
 use App\Models\Front\Card;
 use App\Models\Front\CardItem;
 use App\Models\User;
@@ -31,80 +35,235 @@ class CartController extends Controller
     protected $cartItem;
     protected $offer;
     protected $offer_card;
+    protected $cardTypes;
+    protected $request;
+    protected $card_item_type;
+    protected $card_item_extra;
+
+
     // store cart
     public function store(StoreCartRequest $request){
        
-        try{      
-            // transaction
-            DB::beginTransaction();  
-            // get user data from request 
-            $this->user = $request->user();  
-             // check if user has already cart before or not and get product object from id  
-            $this->cart = Card::where('user_id' , $this->user->id)->first();   
-            $this->product = Product::find($request->product_id); 
+        try{  
            
+            // transaction
+            DB::beginTransaction(); 
+            $this->request = $request; 
+      
+            // get user data from request 
+            $this->user = $request->user(); 
+            $this->product = Product::with(['category' , 'types' , 'extras' , 'combos'])->find($this->request->product_id);
+ 
             if(!isset($this->product)){
                 return  $this->res(true ,'Proudct Not Found' , 404);
-            }       
-            // check if has cart or not  
-            if(is_null($this->cart) && !isset($this->cart)){      
-                // store new cart
-                $this->createNewCart();
-               // store item or product to cart item
-               $this->storeCartItem();   
-            }else{
-                  // if has cart check if has product in cart_item
-                $this->checkItemProduct();
             }
-            DB::commit();      
-            return  $this->res(true ,'Added To Cart ' , 200 , new CartResource($this->cart));
+
+            if(isset($this->product->category)){
+                if($this->product->category->has_options != '1'){
+                    $this->storeNoOptionsProduct($request); 
+                    $carts = Card::with('items.product')->where($this->user->user_id)->get();
+                    DB::commit();
+                    return  $this->res(true ,'Added To Cart ' , 200 , CartWithOptionResource::collection($carts));
+                }
+
+                if(!$this->storeOptionsProduct()){
+                    return  $this->res(false ,'Invalid data sent' , 402);
+                } 
+
+                DB::commit();
+                $carts = Card::with('items.product')->where($this->user->user_id)->get();
+               return  $this->res(true ,'Added To Cart ' , 200 , CartWithOptionResource::collection($carts));
+              
+
+            }else{
+                return  $this->res(true ,'Product Not Belong To Category ' , 404);
+            }
+
                  
         }catch(\Exception $e){
             DB::rollBack();
             return  $this->res(false ,$e->getMessage() , $e->getLine());
         }
 
+
+
     } // end function add cart
+
+    // store prodduct that has option 
+    public function storeNoOptionsProduct(){
+        // if has already cart
+        if(!$this->check_user_has_cart()){
+            $this->create_new_cart();
+        }
+        $this->checkItemProduct();
+        return true;
+    }
+
+        //  check if product in cart item 
+        public function checkItemProduct(){
+            $this->cartItem = CardItem::where('card_id' , $this->cart->id)->where('product_id' , $this->product->id)->first();
+            if(isset($this->cartItem ) && $this->cartItem  != null){ 
+                $this->cartItem->quantity    = $this->cartItem->quantity  + 1;
+                $this->cartItem->save();                 
+            }   
+
+            $this->storeCartItem();
+           
+        }
+    // add cart item 
+    public function storeCartItem(){
+
+        $this->cartItem = new CardItem();
+        $this->cartItem->card_id = $this->cart->id;
+        $this->cartItem->product_id = $this->product->id;
+        $this->cartItem->quantity   = 1;
+        if($this->product->category->has_options == '1'){
+            $this->cartItem->has_options = '1';
+            $this->cartItem->combo_id = $this->request->combo_id;
+
+        }
+        $this->cartItem->save();
+    }
+
+
+
+    // store normal product to cart
+    protected function storeOptionsProduct(){
+        $this->create_new_cart();
+        $this->storeCartItem();
+        if(!$this->create_item_types()){
+            return false;
+        }
+        if(!$this->create_item_extra()){
+            return false;
+        }
+
+
+        return true;
+
+
+
+
+
+    }
+
+
+
+    // check if the user
+    protected function check_user_has_cart(){
+
+        // check if user has already cart before or not and get product object from id  
+        $this->cart = Card::where('user_id' , $this->user->id)->first();  
+        if(isset($this->cart)){
+            return true;
+        }
+        return false;
+    }
+
+    // create new cart 
+    private function create_new_cart(){
+        $this->cart = new Card();
+        $this->cart->user_id = $this->user->id;
+        $this->cart->save();
+    }
+
+    // store item types 
+    private function create_item_types(){
+      
+        if($this->request->has('types')){
+            // Extract type_ids from the request
+            $typeIdsFromRequest = array_column($this->request->input('types'), 'type_id');   
+              
+            foreach ($this->product->types as $productType) {
+                // Check if the current product type_id is in the type_ids from the request
+                if (in_array($productType->id, $typeIdsFromRequest)) {
+                    foreach ($this->request->input('types') as $typeData) {
+                        if ($productType->id == $typeData['type_id']) {
+                            
+                            $option = Typeoption::where('type_id' , $typeData['type_id'])->where('id' , $typeData['option_id'])->first();
+                            
+                            if(isset($option)){
+                                $this->card_item_type = new CartItemsTypes();
+                                $this->card_item_type->card_item_id  = $this->cartItem->id;
+                                $this->card_item_type->type_id       = $typeData['type_id'];
+                                $this->card_item_type->typeoption_id = $option->id;
+                                $this->card_item_type->save();
+
+                            }else{ // if has no option
+                                return false;
+                            }
+
+                        }
+                    } // end loop for all types sent in request 
+
+                }else{ // if prodsuct types didnot exist in data in request
+                    return false;
+                } 
+            }
+            
+            return true;
+        }
+
+        return false;
+
+       
+        
+    }
+
+
+
+
+    // store extra 
+    private function create_item_extra() {
+        foreach ($this->product->extras as $extra) {
+        
+            if(in_array($extra->id , $this->request->extras_ids)){
+               $this->card_item_extra = new CartItemsExtras();
+               $this->card_item_extra->card_item_id = $this->cartItem->id;
+               $this->card_item_extra->extra_id = $extra->id;
+               $this->card_item_extra->save();
+
+            }else{
+                return false;
+            }
+
+        }
+
+        return true;
+
+    } // end store extra item
+
+
+    // private function validate_options_products_data(){
+
+    //     if ($this->request->has('extras')) {}
+        
+    // }
+
+
+
+
 
 
     // create new cart 
-    private function createNewCart(){
+    // private function createNewCart(){
         
-        $cart = new Card();
-        $cart->user_id = $this->user->id;
-        $cart->save();
-        $this->cart = $cart;
-    }
+    //     $cart = new Card();
+    //     $cart->user_id = $this->user->id;
+    //     $cart->save();
+    //     $this->cart = $cart;
+    // }
 
 
-    // add cart item 
-    public function storeCartItem(){
-        $card_item = new CardItem();
-        $card_item->card_id = $this->cart->id;
-        $card_item->product_id = $this->product->id;
-        $card_item->quantity   = 1;
-        $card_item->total_price = $this->product->price;
-        $card_item->save();
-        return true;
-    }
 
 
-    // check if product in cart item 
-    public function checkItemProduct(){
 
-        $card_item = CardItem::where('card_id' , $this->cart->id)->where('product_id' , $this->product->id)->first();
-        if(isset($card_item) && $card_item != null){ 
-            $card_item->quantity    = $card_item->quantity  + 1;
-            $card_item->total_price = ( $card_item->quantity  + 1 ) * $this->product->price;
-            $card_item->save();        
-            
-        }else{
-            
-            $this->storeCartItem();
-        }
-        return true;
 
-    }
+
+
+
+
+
 
 
 

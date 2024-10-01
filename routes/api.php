@@ -135,7 +135,36 @@ use Illuminate\Support\Facades\Route;
 
 
 
+    // user api without authantication
+    Route::prefix('users')->group(function (){
+        Route::post('/user/api_login' , [\App\Http\Controllers\Api\UsersController::class, 'Api_login']);
+        Route::post('store' , [\App\Http\Controllers\Api\UsersController::class, 'store']);
+        Route::prefix('delivery')->group(function(){
+            // login 
+            Route::post('login' , [DeliveryController::class, 'login']); 
+        });
+        // start rest password
+        Route::post('rest_password' , [\App\Http\Controllers\Api\UsersController::class, 'rest_password']);
+        Route::post('check/rest_code' , [\App\Http\Controllers\Api\UsersController::class, 'check_rest_code']);
+    });
 
+
+    Route::middleware(['auth:sanctum' , 'checkLang'])->group(function (){
+
+    // start cart 
+    Route::prefix('cart')->group(function(){
+        Route::post('/add_item/cart' , [CartController::class , 'store']);
+        Route::post('get' , [CartController::class , 'get']);
+        Route::post('/update' , [CartController::class , 'update']);
+        Route::post('/delete' , [CartController::class , 'delete']);
+        Route::post('item/delete' , [CartController::class , 'delete_item']);
+
+        // cart offer
+        Route::post('offer_card/add' , [CartController::class , 'add_card_offer']);
+        Route::post('/offer_cart/delete' , [CartController::class , 'offer_cart_delete']);
+        Route::get('/offer_cart/get' , [CartController::class , 'offer_cart_get']);
+    });
+    });
     
     
 
@@ -155,17 +184,6 @@ use Illuminate\Support\Facades\Route;
 
     // middleware with lang
 
-    Route::prefix('users')->group(function (){
-        Route::post('/user/api_login' , [\App\Http\Controllers\Api\UsersController::class, 'Api_login']);
-        Route::post('store' , [\App\Http\Controllers\Api\UsersController::class, 'store']);
-        Route::prefix('delivery')->group(function(){
-            // login 
-            Route::post('login' , [DeliveryController::class, 'login']); 
-        });
-        // start rest password
-        Route::post('rest_password' , [\App\Http\Controllers\Api\UsersController::class, 'rest_password']);
-        Route::post('check/rest_code' , [\App\Http\Controllers\Api\UsersController::class, 'check_rest_code']);
-    });
 
     // api for govs and cities
     Route::prefix('govs')->group(function(){
@@ -212,19 +230,7 @@ Route::middleware(['auth:sanctum' , 'checkLang'])->group(function (){
 
 
     });
-    // start cart 
-    Route::prefix('cart')->group(function(){
-        Route::post('/add_item/cart' , [CartController::class , 'store']);
-        Route::post('get' , [CartController::class , 'get']);
-        Route::post('/update' , [CartController::class , 'update']);
-        Route::post('/delete' , [CartController::class , 'delete']);
-        Route::post('item/delete' , [CartController::class , 'delete_item']);
 
-        // cart offer
-        Route::post('offer_card/add' , [CartController::class , 'add_card_offer']);
-        Route::post('/offer_cart/delete' , [CartController::class , 'offer_cart_delete']);
-        Route::get('/offer_cart/get' , [CartController::class , 'offer_cart_get']);
-    });
 
 
 

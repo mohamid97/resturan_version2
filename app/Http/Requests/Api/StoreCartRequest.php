@@ -25,6 +25,10 @@ class StoreCartRequest extends FormRequest
     {
         return [
             'product_id' => 'required|integer|exists:products,id',
+            'combo_id'=>'nullable|integer',
+            'types'=>'nullable|array',
+            'extras_ids'=>'nullable|array'
+            
         ];
     }
 

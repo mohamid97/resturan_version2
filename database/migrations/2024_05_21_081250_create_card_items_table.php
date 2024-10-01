@@ -18,10 +18,13 @@ return new class extends Migration
             $table->unsignedBigInteger('card_id');
             $table->unsignedBigInteger('product_id');
             $table->integer('quantity');
-            $table->double('total_price');
+            $table->unsignedBigInteger('combo_id')->nullable();
+            $table->enum('has_options' , [0 ,1])->default(0);
             $table->timestamps();
             $table->foreign('card_id')->references('id')->on('cards')->onDelete('cascade');
             $table->foreign('product_id')->references('id')->on('products')->onDelete('cascade');
+            $table->foreign('combo_id')->references('id')->on('combos')->onDelete('cascade');
+
         });
     }
 

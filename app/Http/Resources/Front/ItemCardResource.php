@@ -26,7 +26,6 @@ class ItemCardResource extends JsonResource
             'product_name'=>$product->name,
             'quantity'=> $this->quantity,
             'gallery' => $product->gallery,
-            'total_price'=>$this->quantity * $product->price,
        ];
     }
 }
